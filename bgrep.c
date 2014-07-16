@@ -27,14 +27,25 @@
 // or implied, of the copyright holder.
 //
 
+// define operating system temporaily 
+//#define WINDOWS
+#define UNIX
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <dirent.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <sys/stat.h>
+
+#ifdef UNIX
+#include <dirent.h>
+#include <unistd.h>
+#endif
+
+#ifdef WINDOWS
+#include <io.h>
+#endif
 
 #define BGREP_VERSION "0.2"
 
@@ -167,8 +178,10 @@ void recurse(const char *path, const unsigned char *value, const unsigned char *
 		perror("stat");
 		return;
 	}
-	if (!S_ISDIR(s.st_mode))
-	{
+#ifdef UNIX	
+	 if (!S_ISDIR(s.st_mode))
+     {
+#endif
 		int fd = open(path, O_RDONLY);
 		if (fd < 0)
 			perror(path);
@@ -178,28 +191,30 @@ void recurse(const char *path, const unsigned char *value, const unsigned char *
 			close(fd);
 		}
 		return;
-	}
 
-	DIR *dir = opendir(path);
-	if (!dir)
-	{
-		perror(path);
-		exit(3);
-	}
-
-	struct dirent *d;
-	while ((d = readdir(dir)))
-	{
-		if (!(strcmp(d->d_name, ".") && strcmp(d->d_name, "..")))
-			continue;
-		char newpath[strlen(path) + strlen(d->d_name) + 1];
-		strcpy(newpath, path);
-		strcat(newpath, "/");
-		strcat(newpath, d->d_name);
-		recurse(newpath, value, mask, len, before, after,bytes);
-	}
-
-	closedir(dir);
+#ifdef UNIX
+	 }
+	 DIR *dir = opendir(path);
+     if (!dir)
+     {
+            perror(path);
+            exit(3);
+     }
+ 
+     struct dirent *d;
+     while ((d = readdir(dir)))
+     {
+         if (!(strcmp(d->d_name, ".") && strcmp(d->d_name, "..")))
+                         continue;
+                 char newpath[strlen(path) + strlen(d->d_name) + 1];
+                 strcpy(newpath, path);
+                 strcat(newpath, "/");
+                 strcat(newpath, d->d_name);
+                 recurse(newpath, value, mask, len, before, after,bytes);
+         }
+ 
+         closedir(dir);
+#endif
 }
 
 int main(int argc, char **argv)
@@ -304,5 +319,6 @@ int main(int argc, char **argv)
 	}
 	return 0;
 }
+
 
 
